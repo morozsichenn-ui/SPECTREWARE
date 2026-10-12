@@ -1,5 +1,5 @@
 --==================================================
--- SPECTREWARE SCRIPT HUB (Death-Persistent & Optimized)
+-- SPECTREWARE SCRIPT HUB (Fully Clean & Death-Resistant)
 --==================================================
 
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
@@ -92,7 +92,34 @@ local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 
--- 1. PLAYER ESP V3 (С защитой от смерти)
+-- Функция для полной очистки старых GUI при смерти/респавне
+local function clearOldUIs()
+	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+	if not playerGui then return end
+	
+	for _, guiName in ipairs({
+		"SPECTREWARE_PlayerESP",
+		"SPECTREWARE_Tracers",
+		"SPECTREWARE_Arrows",
+		"SPECTREWARE_OreESPLabels",
+		"SPECTREWARE_WorldESP",
+		"SPECTREWARE_AimAssistGui",
+		"SPECTREWARE_Crosshair"
+	}) do
+		local oldGui = playerGui:FindFirstChild(guiName)
+		if oldGui then
+			oldGui:Destroy()
+		end
+	end
+end
+
+clearOldUIs()
+LocalPlayer.CharacterAdded:Connect(function()
+	task.wait(0.2)
+	clearOldUIs()
+end)
+
+-- 1. PLAYER ESP V3
 task.spawn(function()
 	local BOX_COLOR = Color3.fromRGB(255, 255, 255)
 	local HEALTH_BAR_WIDTH = 4
@@ -170,12 +197,22 @@ task.spawn(function()
 	end)
 
 	LocalPlayer.CharacterAdded:Connect(function()
-		task.wait(0.5)
+		task.wait(0.3)
 		initPlayerESP()
 	end)
 
 	RunService.RenderStepped:Connect(function()
-		if not Toggles.PlayerESP.Value then return end
+		local active = Toggles.PlayerESP.Value
+		for _, objects in pairs(espObjects) do
+			if not active then
+				if objects.Box then objects.Box.Visible = false end
+				if objects.Label then objects.Label.Visible = false end
+				if objects.HealthBack then objects.HealthBack.Visible = false end
+			end
+		end
+
+		if not active then return end
+
 		local camera = Workspace.CurrentCamera
 		if not camera then return end
 
@@ -250,7 +287,7 @@ task.spawn(function()
 	end)
 end)
 
--- 2. TRACERS & ARROWS (С защитой от смерти)
+-- 2. TRACERS & ARROWS
 task.spawn(function()
 	local tGui, aGui
 	local tracers = {}
@@ -332,13 +369,26 @@ task.spawn(function()
 	end)
 
 	LocalPlayer.CharacterAdded:Connect(function()
-		task.wait(0.5)
+		task.wait(0.3)
 		initTracersAndArrows()
 	end)
 
 	RunService.RenderStepped:Connect(function(dt)
 		local tracersActive = Toggles.Tracers.Value
 		local arrowsActive = Toggles.Arrows.Value
+
+		if not tracersActive then
+			for _, line in pairs(tracers) do
+				if line then line.Visible = false end
+			end
+		end
+
+		if not arrowsActive then
+			for _, data in pairs(arrows) do
+				if data and data.label then data.label.Visible = false end
+			end
+		end
+
 		if not tracersActive and not arrowsActive then return end
 
 		local cam = Workspace.CurrentCamera
@@ -347,7 +397,7 @@ task.spawn(function()
 		local center = vp / 2
 
 		for p, line in pairs(tracers) do
-			if not tracersActive or not line.Parent then line.Visible = false; continue end
+			if not tracersActive or not line.Parent then continue end
 			local char = p.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -371,7 +421,7 @@ task.spawn(function()
 
 		for p, data in pairs(arrows) do
 			local lbl = data.label
-			if not arrowsActive or not lbl.Parent then lbl.Visible = false; continue end
+			if not arrowsActive or not lbl.Parent then continue end
 			local char = p.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -418,7 +468,7 @@ task.spawn(function()
 	initOreGui()
 
 	LocalPlayer.CharacterAdded:Connect(function()
-		task.wait(0.5)
+		task.wait(0.3)
 		initOreGui()
 	end)
 
@@ -556,7 +606,7 @@ task.spawn(function()
 	end)
 end)
 
--- 3.1. FIXED WORLD ESP (Crates, Locked Crates, Boats, NPCs с защитой от смерти)
+-- 3.1. FIXED WORLD ESP (Crates, Locked Crates, Boats, NPCs)
 task.spawn(function()
 	local worldGui = nil
 	local trackedWorldObjects = {}
@@ -570,7 +620,7 @@ task.spawn(function()
 	initWorldGui()
 
 	LocalPlayer.CharacterAdded:Connect(function()
-		task.wait(0.5)
+		task.wait(0.3)
 		initWorldGui()
 	end)
 
@@ -795,7 +845,7 @@ task.spawn(function()
 	end)
 end)
 
--- 6. AIM ASSIST + FOV CIRCLE (С защитой от смерти)
+-- 6. AIM ASSIST + FOV CIRCLE
 task.spawn(function()
 	local aimGui = nil
 	local fovCircle = nil
@@ -828,7 +878,7 @@ task.spawn(function()
 
 	initAimGui()
 	LocalPlayer.CharacterAdded:Connect(function()
-		task.wait(0.5)
+		task.wait(0.3)
 		initAimGui()
 	end)
 
@@ -883,7 +933,7 @@ task.spawn(function()
 	end)
 end)
 
--- 7. CUSTOM CROSSHAIR (С защитой от смерти)
+-- 7. CUSTOM CROSSHAIR
 task.spawn(function()
 	local chGui = nil
 	local centerFrame = nil
@@ -916,7 +966,7 @@ task.spawn(function()
 
 	initCrosshair()
 	LocalPlayer.CharacterAdded:Connect(function()
-		task.wait(0.5)
+		task.wait(0.3)
 		initCrosshair()
 	end)
 
@@ -1050,4 +1100,4 @@ SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 SaveManager:LoadAutoloadConfig()
 
-print("[SPECTREWARE] Fully Loaded, Optimized & Death-Resistant!")
+print("[SPECTREWARE] Fully Loaded, Clean & Death-Resistant!")
