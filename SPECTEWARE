@@ -1,5 +1,5 @@
 --==================================================
--- SPECTREWARE SCRIPT HUB (Fully Clean & Death-Resistant)
+-- SPECTREWARE SCRIPT HUB (Advanced, Death-Resistant & Filterable)
 --==================================================
 
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
@@ -37,14 +37,30 @@ local CombatGroup = Tabs.Combat:AddGroupbox({ Side = "Left", Name = "Aim Assist"
 local CrosshairGroup = Tabs.Combat:AddGroupbox({ Side = "Right", Name = "Custom Crosshair" })
 local MoveGroup = Tabs.Movement:AddGroupbox({ Side = "Left", Name = "Movement Hacks" })
 
--- БИНДЫ НА ВСЕ ТУМБЛЕРЫ
+-- СПИСОК ИГРОКОВ ДЛЯ WHITELIST (Динамический сбор)
+local Players = game:GetService("Players")
+local function getPlayerNames()
+	local names = {}
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= Players.LocalPlayer then
+			table.insert(names, p.Name)
+		end
+	end
+	return names
+end
+
+-- НАСТРОЙКИ UI
 VisGroup:AddToggle("PlayerESP", { Text = "Player ESP V3", Default = false }):AddKeyPicker("ESPKey", { Default = "None", Mode = "Toggle", Text = "Player ESP" })
 VisGroup:AddToggle("Tracers", { Text = "Player Tracers", Default = false }):AddKeyPicker("TracerKey", { Default = "T", Mode = "Toggle", Text = "Tracers" })
 VisGroup:AddToggle("Arrows", { Text = "Direction Arrows", Default = false }):AddKeyPicker("ArrowKey", { Default = "O", Mode = "Toggle", Text = "Arrows" })
+VisGroup:AddDropdown("ESPWhitelist", { Values = getPlayerNames(), Default = {}, Multi = true, Text = "ESP Whitelist (Ignore)" })
 
 WorldGroup:AddToggle("Crates", { Text = "Crates ESP", Default = false }):AddKeyPicker("CratesKey", { Default = "None", Mode = "Toggle", Text = "Crates ESP" })
-WorldGroup:AddToggle("LockedCrates", { Text = "Locked Crates ESP", Default = false }):AddKeyPicker("LCratesKey", { Default = "None", Mode = "Toggle", Text = "Locked Crates ESP" })
-WorldGroup:AddToggle("Ores", { Text = "Ores ESP", Default = false }):AddKeyPicker("OresKey", { Default = "None", Mode = "Toggle", Text = "Ores ESP" })
+WorldGroup:AddDropdown("CratesFilter", { Values = { "Crate", "Locked Crate", "Military Crate" }, Default = { "Crate", "Locked Crate", "Military Crate" }, Multi = true, Text = "Crates Filter" })
+
+WorldGroup:AddToggle("Ores", { Text = "Ores & Cloth ESP", Default = false }):AddKeyPicker("OresKey", { Default = "None", Mode = "Toggle", Text = "Ores ESP" })
+WorldGroup:AddDropdown("OresFilter", { Values = { "Stone", "Metal Ore", "Sulfur", "Cloth" }, Default = { "Stone", "Metal Ore", "Sulfur", "Cloth" }, Multi = true, Text = "Ores/Cloth Filter" })
+
 WorldGroup:AddToggle("Boats", { Text = "Boats ESP", Default = false }):AddKeyPicker("BoatsKey", { Default = "None", Mode = "Toggle", Text = "Boats ESP" })
 WorldGroup:AddToggle("NPCs", { Text = "NPC ESP", Default = false }):AddKeyPicker("NPCsKey", { Default = "None", Mode = "Toggle", Text = "NPCs ESP" })
 
@@ -55,10 +71,10 @@ EnvGroup:AddSlider("XRayTrans", { Text = "X-Ray Transparency %", Default = 65, M
 CombatGroup:AddToggle("AimAssist", { Text = "Aim Assist", Default = false }):AddKeyPicker("AimKey", { Default = "None", Mode = "Toggle", Text = "Aim Assist" })
 CombatGroup:AddToggle("DrawFOV", { Text = "Draw FOV Circle", Default = false }):AddKeyPicker("FOVKey", { Default = "None", Mode = "Toggle", Text = "Draw FOV" })
 CombatGroup:AddDropdown("AimPart", { Values = { "Head", "UpperTorso", "HumanoidRootPart" }, Default = 1, Text = "Target Part" })
+CombatGroup:AddDropdown("AimWhitelist", { Values = getPlayerNames(), Default = {}, Multi = true, Text = "Aim Whitelist (Ignore)" })
 CombatGroup:AddSlider("AimDist", { Text = "Max Distance", Default = 500, Min = 50, Max = 2000, Rounding = 0 })
 CombatGroup:AddSlider("AimFOV", { Text = "Aim FOV", Default = 180, Min = 30, Max = 500, Rounding = 0 })
 
--- НАСТРОЙКИ КАСТОМНОГО ПРИЦЕЛА С БИНДОМ
 CrosshairGroup:AddToggle("CustomCrosshair", { Text = "Enable Crosshair", Default = false }):AddKeyPicker("CHKey", { Default = "None", Mode = "Toggle", Text = "Crosshair" })
 CrosshairGroup:AddLabel("Color"):AddColorPicker("CHColor", { Default = Color3.fromRGB(0, 255, 120) })
 CrosshairGroup:AddSlider("CHLength", { Text = "Length", Default = 8, Min = 2, Max = 30, Rounding = 0 })
@@ -68,6 +84,7 @@ CrosshairGroup:AddSlider("CHRotation", { Text = "Rotation", Default = 0, Min = 0
 
 MoveGroup:AddToggle("InfJump", { Text = "Infinite Jump", Default = false }):AddKeyPicker("InfJumpKey", { Default = "None", Mode = "Toggle", Text = "Infinite Jump" })
 MoveGroup:AddToggle("Sprint", { Text = "Sprint (Shift)", Default = false }):AddKeyPicker("SprintKey", { Default = "None", Mode = "Toggle", Text = "Sprint" })
+MoveGroup:AddSlider("SpeedValue", { Text = "Sprint Speed", Default = 36, Min = 16, Max = 100, Rounding = 0 })
 MoveGroup:AddToggle("Noclip", { Text = "Noclip", Default = false }):AddKeyPicker("NoclipKey", { Default = "N", Mode = "Toggle", Text = "Noclip" })
 MoveGroup:AddToggle("Freecam", { Text = "Freecam", Default = false }):AddKeyPicker("FreecamKey", { Default = "None", Mode = "Toggle", Text = "Freecam" })
 MoveGroup:AddSlider("FreecamSpeed", { Text = "Freecam Speed", Default = 50, Min = 10, Max = 200, Rounding = 0 })
@@ -81,10 +98,9 @@ Library.ToggleKeybind = Options.MenuKeybind
 
 
 --==================================================
--- STABLE CORE LOGIC (DEATH-RESISTANT)
+-- CORE LOGIC
 --==================================================
 
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
@@ -92,24 +108,26 @@ local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Функция для полной очистки старых GUI при смерти/респавне
+-- Обновление списков игроков в Whitelist
+Players.PlayerAdded:Connect(function()
+	Options.ESPWhitelist:SetValues(getPlayerNames())
+	Options.AimWhitelist:SetValues(getPlayerNames())
+end)
+Players.PlayerRemoving:Connect(function()
+	Options.ESPWhitelist:SetValues(getPlayerNames())
+	Options.AimWhitelist:SetValues(getPlayerNames())
+end)
+
+-- Очистка старых интерфейсов при смерти
 local function clearOldUIs()
 	local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
 	if not playerGui then return end
-	
 	for _, guiName in ipairs({
-		"SPECTREWARE_PlayerESP",
-		"SPECTREWARE_Tracers",
-		"SPECTREWARE_Arrows",
-		"SPECTREWARE_OreESPLabels",
-		"SPECTREWARE_WorldESP",
-		"SPECTREWARE_AimAssistGui",
-		"SPECTREWARE_Crosshair"
+		"SPECTREWARE_PlayerESP", "SPECTREWARE_Tracers", "SPECTREWARE_Arrows",
+		"SPECTREWARE_OreESPLabels", "SPECTREWARE_WorldESP", "SPECTREWARE_AimAssistGui", "SPECTREWARE_Crosshair"
 	}) do
 		local oldGui = playerGui:FindFirstChild(guiName)
-		if oldGui then
-			oldGui:Destroy()
-		end
+		if oldGui then oldGui:Destroy() end
 	end
 end
 
@@ -187,14 +205,6 @@ task.spawn(function()
 
 	initPlayerESP()
 	Players.PlayerAdded:Connect(createESP)
-	Players.PlayerRemoving:Connect(function(p)
-		if espObjects[p] then
-			if espObjects[p].Box then espObjects[p].Box:Destroy() end
-			if espObjects[p].Label then espObjects[p].Label:Destroy() end
-			if espObjects[p].HealthBack then espObjects[p].HealthBack:Destroy() end
-			espObjects[p] = nil
-		end
-	end)
 
 	LocalPlayer.CharacterAdded:Connect(function()
 		task.wait(0.3)
@@ -203,8 +213,9 @@ task.spawn(function()
 
 	RunService.RenderStepped:Connect(function()
 		local active = Toggles.PlayerESP.Value
-		for _, objects in pairs(espObjects) do
-			if not active then
+		for player, objects in pairs(espObjects) do
+			local isWhitelisted = Options.ESPWhitelist.Value[player.Name]
+			if not active or isWhitelisted then
 				if objects.Box then objects.Box.Visible = false end
 				if objects.Label then objects.Label.Visible = false end
 				if objects.HealthBack then objects.HealthBack.Visible = false end
@@ -212,7 +223,6 @@ task.spawn(function()
 		end
 
 		if not active then return end
-
 		local camera = Workspace.CurrentCamera
 		if not camera then return end
 
@@ -220,10 +230,9 @@ task.spawn(function()
 		local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
 
 		for player, objects in pairs(espObjects) do
+			if Options.ESPWhitelist.Value[player.Name] then continue end
 			local char = player.Character
-			if not char or not myChar or not objects.Box or not objects.Box.Parent then
-				continue
-			end
+			if not char or not myChar or not objects.Box or not objects.Box.Parent then continue end
 
 			local root = char:FindFirstChild("HumanoidRootPart")
 			local hum = char:FindFirstChildOfClass("Humanoid")
@@ -343,7 +352,7 @@ task.spawn(function()
 
 	initTracersAndArrows()
 	Players.PlayerAdded:Connect(function(p)
-		if p ~= LocalPlayer and tGui then
+		if p ~= LocalPlayer and tGui and aGui then
 			local line = Instance.new("Frame")
 			line.AnchorPoint = Vector2.new(0.5, 0.5)
 			line.BorderSizePixel = 0
@@ -351,8 +360,7 @@ task.spawn(function()
 			line.Visible = false
 			line.Parent = tGui
 			tracers[p] = line
-		end
-		if p ~= LocalPlayer and aGui then
+
 			local lbl = Instance.new("TextLabel")
 			lbl.Size = UDim2.fromOffset(22, 22)
 			lbl.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -377,27 +385,23 @@ task.spawn(function()
 		local tracersActive = Toggles.Tracers.Value
 		local arrowsActive = Toggles.Arrows.Value
 
-		if not tracersActive then
-			for _, line in pairs(tracers) do
-				if line then line.Visible = false end
-			end
+		for p, line in pairs(tracers) do
+			local isWhitelisted = Options.ESPWhitelist.Value[p.Name]
+			if not tracersActive or isWhitelisted or not line.Parent then line.Visible = false end
 		end
-
-		if not arrowsActive then
-			for _, data in pairs(arrows) do
-				if data and data.label then data.label.Visible = false end
-			end
+		for p, data in pairs(arrows) do
+			local isWhitelisted = Options.ESPWhitelist.Value[p.Name]
+			if not arrowsActive or isWhitelisted or not data.label.Parent then data.label.Visible = false end
 		end
 
 		if not tracersActive and not arrowsActive then return end
-
 		local cam = Workspace.CurrentCamera
 		if not cam then return end
 		local vp = cam.ViewportSize
 		local center = vp / 2
 
 		for p, line in pairs(tracers) do
-			if not tracersActive or not line.Parent then continue end
+			if Options.ESPWhitelist.Value[p.Name] or not tracersActive then continue end
 			local char = p.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -421,7 +425,7 @@ task.spawn(function()
 
 		for p, data in pairs(arrows) do
 			local lbl = data.label
-			if not arrowsActive or not lbl.Parent then continue end
+			if Options.ESPWhitelist.Value[p.Name] or not arrowsActive then continue end
 			local char = p.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -443,10 +447,10 @@ task.spawn(function()
 	end)
 end)
 
--- 3. ORES ESP
+-- 3. ORES & CLOTH ESP (С фильтром)
 task.spawn(function()
 	local oreFolder = Workspace:WaitForChild("OreSpawns", 5)
-	if not oreFolder then return end
+	local treeFolder = Workspace:FindFirstChild("TreeSpawns") and Workspace.TreeSpawns:FindFirstChild("Grass")
 
 	local COLORS = {
 		["sulfur ore"] = Color3.fromRGB(255, 220, 0),
@@ -454,6 +458,7 @@ task.spawn(function()
 		["stone"] = Color3.fromRGB(155, 155, 155),
 		["metal ore"] = Color3.fromRGB(165, 85, 45),
 		["metal"] = Color3.fromRGB(165, 85, 45),
+		["cloth"] = Color3.fromRGB(255, 255, 255)
 	}
 
 	local oreGui = nil
@@ -472,14 +477,6 @@ task.spawn(function()
 		initOreGui()
 	end)
 
-	local function getOreType(obj)
-		return COLORS[obj.Name:lower()] and obj.Name or nil
-	end
-
-	local function getOreColor(obj)
-		return COLORS[obj.Name:lower()]
-	end
-
 	local function getPart(obj)
 		if obj:IsA("BasePart") then return obj end
 		if obj:IsA("Model") then
@@ -496,18 +493,14 @@ task.spawn(function()
 		tracked[obj] = nil
 	end
 
-	local function registerOre(obj)
-		if tracked[obj] or not obj:IsDescendantOf(oreFolder) then return end
-		if not (obj:IsA("Model") or obj:IsA("BasePart")) then return end
-
-		local oreType = getOreType(obj)
+	local function registerObj(obj, typeName)
+		if tracked[obj] then return end
 		local part = getPart(obj)
-		if not oreType or not part then return end
+		if not part then return end
 
-		local color = getOreColor(obj)
+		local color = COLORS[typeName:lower()] or Color3.new(1,1,1)
 
 		local highlight = Instance.new("Highlight")
-		highlight.Name = "LocalOreHighlight"
 		highlight.Adornee = obj
 		highlight.FillColor = color
 		highlight.OutlineColor = Color3.new(0, 0, 0)
@@ -518,17 +511,14 @@ task.spawn(function()
 		highlight.Parent = obj
 
 		local billboard = Instance.new("BillboardGui")
-		billboard.Name = "OreDistanceLabel"
 		billboard.Adornee = part
 		billboard.Size = UDim2.fromOffset(230, 44)
 		billboard.StudsOffset = Vector3.new(0, 3, 0)
 		billboard.AlwaysOnTop = true
-		billboard.MaxDistance = 100000
 		billboard.Enabled = false
 		billboard.Parent = oreGui
 
 		local text = Instance.new("TextLabel")
-		text.Name = "OreText"
 		text.Size = UDim2.fromScale(1, 1)
 		text.BackgroundTransparency = 1
 		text.Font = Enum.Font.GothamBold
@@ -536,7 +526,7 @@ task.spawn(function()
 		text.TextColor3 = color
 		text.TextStrokeColor3 = Color3.new(0, 0, 0)
 		text.TextStrokeTransparency = 0
-		text.Text = oreType .. "\nDistance: calculating..."
+		text.Text = typeName .. "\nDistance: calculating..."
 		text.Parent = billboard
 
 		tracked[obj] = {
@@ -544,23 +534,35 @@ task.spawn(function()
 			label = billboard,
 			text = text,
 			part = part,
-			type = oreType,
+			type = typeName,
 		}
 	end
 
-	for _, obj in ipairs(oreFolder:GetDescendants()) do
-		registerOre(obj)
+	if oreFolder then
+		for _, obj in ipairs(oreFolder:GetDescendants()) do
+			local nameLower = obj.Name:lower()
+			if COLORS[nameLower] then registerObj(obj, obj.Name) end
+		end
+		oreFolder.DescendantAdded:Connect(function(obj)
+			task.defer(function()
+				local nameLower = obj.Name:lower()
+				if COLORS[nameLower] then registerObj(obj, obj.Name) end
+			end)
+		end)
 	end
 
-	oreFolder.DescendantAdded:Connect(function(obj)
-		task.defer(function()
-			if obj.Parent and obj:IsDescendantOf(oreFolder) then
-				registerOre(obj)
-			end
+	if treeFolder then
+		for _, obj in ipairs(treeFolder:GetDescendants()) do
+			if obj.Name:lower() == "cloth" then registerObj(obj, "Cloth") end
+		end
+		treeFolder.DescendantAdded:Connect(function(obj)
+			task.defer(function()
+				if obj.Name:lower() == "cloth" then registerObj(obj, "Cloth") end
+			end)
 		end)
-	end)
+	end
 
-	oreFolder.DescendantRemoving:Connect(function(obj)
+	Workspace.DescendantRemoving:Connect(function(obj)
 		removeOre(obj)
 	end)
 
@@ -569,36 +571,31 @@ task.spawn(function()
 			task.wait(0.2)
 			if oreGui and oreGui.Parent then
 				local active = Toggles.Ores.Value
-				if active then
-					local character = LocalPlayer.Character
-					local root = character and character:FindFirstChild("HumanoidRootPart")
+				local filter = Options.OresFilter.Value
+				local character = LocalPlayer.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
 
-					for obj, data in pairs(tracked) do
-						if not obj:IsDescendantOf(oreFolder) then
-							removeOre(obj)
-						else
-							data.highlight.Enabled = true
-							if data.label.Parent ~= oreGui then data.label.Parent = oreGui end
-							data.label.Enabled = true
-
-							local part = getPart(obj)
-							if part then
-								data.part = part
-								data.label.Adornee = part
-							end
-
-							if root and data.part and data.part:IsDescendantOf(Workspace) then
-								local distance = (root.Position - data.part.Position).Magnitude
-								data.text.Text = string.format("%s\nDistance: %d studs", data.type, math.floor(distance + 0.5))
-							else
-								data.text.Text = data.type .. "\nDistance: waiting..."
-							end
+				for obj, data in pairs(tracked) do
+					local isAllowed = false
+					for filterName, isEnabled in pairs(filter) do
+						if isEnabled and data.type:lower():find(filterName:lower()) then
+							isAllowed = true
+							break
 						end
 					end
-				else
-					for _, data in pairs(tracked) do
-						if data.highlight then data.highlight.Enabled = false end
-						if data.label then data.label.Enabled = false end
+
+					if active and isAllowed then
+						data.highlight.Enabled = true
+						if data.label.Parent ~= oreGui then data.label.Parent = oreGui end
+						data.label.Enabled = true
+
+						if root and data.part and data.part:IsDescendantOf(Workspace) then
+							local distance = (root.Position - data.part.Position).Magnitude
+							data.text.Text = string.format("%s\nDistance: %d studs", data.type, math.floor(distance + 0.5))
+						end
+					else
+						data.highlight.Enabled = false
+						data.label.Enabled = false
 					end
 				end
 			end
@@ -606,7 +603,7 @@ task.spawn(function()
 	end)
 end)
 
--- 3.1. FIXED WORLD ESP (Crates, Locked Crates, Boats, NPCs)
+-- 3.1. FIXED WORLD ESP (Crates, Boats, NPCs с фильтрами и исправлением поиска)
 task.spawn(function()
 	local worldGui = nil
 	local trackedWorldObjects = {}
@@ -690,10 +687,12 @@ task.spawn(function()
 			for _, desc in ipairs(genMonuments:GetDescendants()) do
 				local nameLower = desc.Name:lower()
 				if nameLower == "locked crate" then
-					registerWorldObj(desc, "LockedCrates", Color3.fromRGB(255, 50, 50), "Locked Crate")
+					registerWorldObj(desc, "Locked Crate", Color3.fromRGB(255, 50, 50), "Locked Crate")
 				elseif nameLower == "crate" then
-					registerWorldObj(desc, "Crates", Color3.fromRGB(255, 165, 0), "Crate")
-				elseif nameLower == "scientists" or (desc.Parent and desc.Parent.Name:lower() == "scientists") then
+					registerWorldObj(desc, "Crate", Color3.fromRGB(255, 165, 0), "Crate")
+				elseif nameLower == "military crate" then
+					registerWorldObj(desc, "Military Crate", Color3.fromRGB(50, 255, 50), "Military Crate")
+				elseif nameLower == "scientists" or nameLower == "scientist" or (desc.Parent and desc.Parent.Name:lower() == "scientists") then
 					if desc:IsA("Model") or desc:IsA("BasePart") then
 						registerWorldObj(desc, "NPCs", Color3.fromRGB(220, 50, 220), "Scientist")
 					end
@@ -729,7 +728,7 @@ task.spawn(function()
 		local root = char and char:FindFirstChild("HumanoidRootPart")
 
 		local cratesActive = Toggles.Crates.Value
-		local lCratesActive = Toggles.LockedCrates.Value
+		local cratesFilter = Options.CratesFilter.Value
 		local boatsActive = Toggles.Boats.Value
 		local npcsActive = Toggles.NPCs.Value
 
@@ -738,10 +737,13 @@ task.spawn(function()
 				removeWorldESP(obj)
 			else
 				local active = false
-				if data.category == "Crates" then active = cratesActive
-				elseif data.category == "LockedCrates" then active = lCratesActive
-				elseif data.category == "Boats" then active = boatsActive
-				elseif data.category == "NPCs" then active = npcsActive end
+				if data.category == "Crates" or data.category == "Locked Crate" or data.category == "Military Crate" or data.category == "Crate" then
+					active = cratesActive and cratesFilter[data.category]
+				elseif data.category == "Boats" then
+					active = boatsActive
+				elseif data.category == "NPCs" then
+					active = npcsActive
+				end
 
 				if active then
 					data.highlight.Enabled = true
@@ -750,8 +752,6 @@ task.spawn(function()
 					if root and data.part and data.part:IsDescendantOf(Workspace) then
 						local dist = (root.Position - data.part.Position).Magnitude
 						data.text.Text = string.format("%s\nDistance: %d studs", data.name, math.floor(dist + 0.5))
-					else
-						data.text.Text = data.name .. "\nDistance: --"
 					end
 				else
 					data.highlight.Enabled = false
@@ -831,21 +831,15 @@ task.spawn(function()
 	end
 
 	Toggles.XRay:OnChanged(function()
-		if Toggles.XRay.Value then
-			applyXRay()
-		else
-			restoreXRay()
-		end
+		if Toggles.XRay.Value then applyXRay() else restoreXRay() end
 	end)
 
 	Options.XRayTrans:OnChanged(function()
-		if Toggles.XRay.Value then
-			applyXRay()
-		end
+		if Toggles.XRay.Value then applyXRay() end
 	end)
 end)
 
--- 6. AIM ASSIST + FOV CIRCLE
+-- 6. AIM ASSIST + FOV CIRCLE (С учетом Aim Whitelist)
 task.spawn(function()
 	local aimGui = nil
 	local fovCircle = nil
@@ -901,7 +895,7 @@ task.spawn(function()
 			local closestPlr, closestDist = nil, fovVal
 
 			for _, p in ipairs(Players:GetPlayers()) do
-				if p ~= LocalPlayer and p.Character then
+				if p ~= LocalPlayer and not Options.AimWhitelist.Value[p.Name] and p.Character then
 					local char = p.Character
 					local hum = char:FindFirstChildOfClass("Humanoid")
 					local part = char:FindFirstChild(Options.AimPart.Value) or char:FindFirstChild("Head")
@@ -1034,7 +1028,8 @@ task.spawn(function()
 		local hum = char:FindFirstChildOfClass("Humanoid")
 		if hum then
 			if Toggles.Sprint.Value then
-				hum.WalkSpeed = (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)) and 36 or 16
+				local isShiftPressed = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
+				hum.WalkSpeed = isShiftPressed and Options.SpeedValue.Value or 16
 			else
 				hum.WalkSpeed = 16
 			end
@@ -1100,4 +1095,4 @@ SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 SaveManager:LoadAutoloadConfig()
 
-print("[SPECTREWARE] Fully Loaded, Clean & Death-Resistant!")
+print("[SPECTREWARE] Fully Updated with Filters, Whitelists & Cloth ESP!")
