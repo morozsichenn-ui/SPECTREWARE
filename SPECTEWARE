@@ -1,0 +1,731 @@
+--==================================================
+-- SPECTREWARE SCRIPT HUB (Zero-Lag, Custom Crosshair & All Binds)
+--==================================================
+
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+
+local Options = Library.Options
+local Toggles = Library.Toggles
+
+Library.ForceCheckbox = false
+Library.ShowToggleFrameInKeybinds = true
+
+local Window = Library:CreateWindow({
+	Title = "SPECTREWARE",
+	Footer = "SPECTREHUB",
+	Icon = 132755590777389,
+	NotifySide = "Right",
+	ShowCustomCursor = true,
+})
+
+local Tabs = {
+	Visuals = Window:AddTab("Visuals", "eye"),
+	World = Window:AddTab("World", "globe"),
+	Combat = Window:AddTab("Combat", "crosshair"),
+	Movement = Window:AddTab("Movement", "activity"),
+	["UI Settings"] = Window:AddTab("UI Settings", "settings"),
+}
+
+-- UI GROUPS
+local VisGroup = Tabs.Visuals:AddGroupbox({ Side = "Left", Name = "Player ESP & Visuals" })
+local WorldGroup = Tabs.World:AddGroupbox({ Side = "Left", Name = "World ESP" })
+local EnvGroup = Tabs.World:AddGroupbox({ Side = "Right", Name = "Environment & X-Ray" })
+local CombatGroup = Tabs.Combat:AddGroupbox({ Side = "Left", Name = "Aim Assist" })
+local CrosshairGroup = Tabs.Combat:AddGroupbox({ Side = "Right", Name = "Custom Crosshair" })
+local MoveGroup = Tabs.Movement:AddGroupbox({ Side = "Left", Name = "Movement Hacks" })
+
+-- БИНДЫ НА ВСЕ ТУМБЛЕРЫ
+VisGroup:AddToggle("PlayerESP", { Text = "Player ESP V3", Default = false }):AddKeyPicker("ESPKey", { Default = "None", Mode = "Toggle", Text = "Player ESP" })
+VisGroup:AddToggle("Tracers", { Text = "Player Tracers", Default = false }):AddKeyPicker("TracerKey", { Default = "T", Mode = "Toggle", Text = "Tracers" })
+VisGroup:AddToggle("Arrows", { Text = "Direction Arrows", Default = false }):AddKeyPicker("ArrowKey", { Default = "O", Mode = "Toggle", Text = "Arrows" })
+
+WorldGroup:AddToggle("Crates", { Text = "Crates ESP", Default = false }):AddKeyPicker("CratesKey", { Default = "None", Mode = "Toggle", Text = "Crates ESP" })
+WorldGroup:AddToggle("LockedCrates", { Text = "Locked Crates ESP", Default = false }):AddKeyPicker("LCratesKey", { Default = "None", Mode = "Toggle", Text = "Locked Crates ESP" })
+WorldGroup:AddToggle("Ores", { Text = "Ores ESP", Default = false }):AddKeyPicker("OresKey", { Default = "None", Mode = "Toggle", Text = "Ores ESP" })
+WorldGroup:AddToggle("Boats", { Text = "Boats ESP", Default = false }):AddKeyPicker("BoatsKey", { Default = "None", Mode = "Toggle", Text = "Boats ESP" })
+WorldGroup:AddToggle("NPCs", { Text = "NPC ESP", Default = false }):AddKeyPicker("NPCsKey", { Default = "None", Mode = "Toggle", Text = "NPCs ESP" })
+
+EnvGroup:AddToggle("FullBright", { Text = "Full Bright", Default = false }):AddKeyPicker("FBKey", { Default = "F7", Mode = "Toggle", Text = "FullBright" })
+EnvGroup:AddToggle("XRay", { Text = "X-Ray (Structures)", Default = false }):AddKeyPicker("XRayKey", { Default = "X", Mode = "Toggle", Text = "X-Ray" })
+EnvGroup:AddSlider("XRayTrans", { Text = "X-Ray Transparency %", Default = 65, Min = 10, Max = 100, Rounding = 0 })
+
+CombatGroup:AddToggle("AimAssist", { Text = "Aim Assist", Default = false }):AddKeyPicker("AimKey", { Default = "None", Mode = "Toggle", Text = "Aim Assist" })
+CombatGroup:AddToggle("DrawFOV", { Text = "Draw FOV Circle", Default = false }):AddKeyPicker("FOVKey", { Default = "None", Mode = "Toggle", Text = "Draw FOV" })
+CombatGroup:AddDropdown("AimPart", { Values = { "Head", "UpperTorso", "HumanoidRootPart" }, Default = 1, Text = "Target Part" })
+CombatGroup:AddSlider("AimDist", { Text = "Max Distance", Default = 500, Min = 50, Max = 2000, Rounding = 0 })
+CombatGroup:AddSlider("AimFOV", { Text = "Aim FOV", Default = 180, Min = 30, Max = 500, Rounding = 0 })
+
+-- НАСТРОЙКИ КАСТОМНОГО ПРИЦЕЛА С БИНДОМ
+CrosshairGroup:AddToggle("CustomCrosshair", { Text = "Enable Crosshair", Default = false }):AddKeyPicker("CHKey", { Default = "None", Mode = "Toggle", Text = "Crosshair" })
+CrosshairGroup:AddLabel("Color"):AddColorPicker("CHColor", { Default = Color3.fromRGB(0, 255, 120) })
+CrosshairGroup:AddSlider("CHLength", { Text = "Length", Default = 8, Min = 2, Max = 30, Rounding = 0 })
+CrosshairGroup:AddSlider("CHWidth", { Text = "Width", Default = 1, Min = 1, Max = 5, Rounding = 0 })
+CrosshairGroup:AddSlider("CHGap", { Text = "Gap", Default = 4, Min = 0, Max = 20, Rounding = 0 })
+CrosshairGroup:AddSlider("CHRotation", { Text = "Rotation", Default = 0, Min = 0, Max = 360, Rounding = 0 })
+
+MoveGroup:AddToggle("InfJump", { Text = "Infinite Jump", Default = false }):AddKeyPicker("InfJumpKey", { Default = "None", Mode = "Toggle", Text = "Infinite Jump" })
+MoveGroup:AddToggle("Sprint", { Text = "Sprint (Shift)", Default = false }):AddKeyPicker("SprintKey", { Default = "None", Mode = "Toggle", Text = "Sprint" })
+MoveGroup:AddToggle("Noclip", { Text = "Noclip", Default = false }):AddKeyPicker("NoclipKey", { Default = "N", Mode = "Toggle", Text = "Noclip" })
+
+local MenuGroup = Tabs["UI Settings"]:AddGroupbox({ Side = "Left", Name = "Menu", IconName = "wrench" })
+MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(v) Library.KeybindFrame.Visible = v end })
+MenuGroup:AddDivider()
+MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { Default = "RightShift", NoUI = true, Text = "Menu keybind" })
+MenuGroup:AddButton("Unload", function() Library:Unload() end)
+Library.ToggleKeybind = Options.MenuKeybind
+
+
+--==================================================
+-- ZERO-LAG CORE LOGIC
+--==================================================
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- 1. PLAYER ESP V3
+task.spawn(function()
+	local BOX_COLOR = Color3.fromRGB(255, 255, 255)
+	local HEALTH_BAR_WIDTH = 4
+	local espObjects = {}
+
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "PlayerESP"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	gui.DisplayOrder = 100
+	gui.Parent = PlayerGui
+
+	local function createFrame(parent, color, zIndex)
+		local frame = Instance.new("Frame")
+		frame.BorderSizePixel = 0
+		frame.BackgroundColor3 = color
+		frame.ZIndex = zIndex or 2
+		frame.Parent = parent
+		return frame
+	end
+
+	local function createESP(player)
+		if player == LocalPlayer or espObjects[player] then return end
+		local box = Instance.new("Frame")
+		box.BackgroundTransparency = 1
+		box.Visible = false
+		box.Parent = gui
+
+		local sides = {}
+		for i = 1, 4 do sides[i] = createFrame(box, BOX_COLOR, 3) end
+
+		local label = Instance.new("TextLabel")
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.new(1, 1, 1)
+		label.TextStrokeColor3 = Color3.new(0, 0, 0)
+		label.TextStrokeTransparency = 0
+		label.Font = Enum.Font.Code
+		label.TextSize = 13
+		label.Visible = false
+		label.Parent = gui
+
+		local healthBack = createFrame(gui, Color3.fromRGB(15, 15, 15), 2)
+		healthBack.Visible = false
+
+		local healthFill = createFrame(healthBack, Color3.fromRGB(50, 220, 80), 3)
+		healthFill.AnchorPoint = Vector2.new(0, 1)
+		healthFill.Position = UDim2.new(0, 0, 1, 0)
+		healthFill.Size = UDim2.new(1, 0, 1, 0)
+
+		espObjects[player] = { Box = box, Sides = sides, Label = label, HealthBack = healthBack, HealthFill = healthFill }
+	end
+
+	for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
+	Players.PlayerAdded:Connect(createESP)
+
+	RunService.RenderStepped:Connect(function()
+		if not Toggles.PlayerESP.Value then return end
+
+		local camera = Workspace.CurrentCamera
+		if not camera then return end
+
+		for player, objects in pairs(espObjects) do
+			local char = player.Character
+			local myChar = LocalPlayer.Character
+			if not char or not myChar then
+				objects.Box.Visible = false
+				objects.Label.Visible = false
+				objects.HealthBack.Visible = false
+				continue
+			end
+
+			local root = char:FindFirstChild("HumanoidRootPart")
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			local head = char:FindFirstChild("Head")
+			local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+
+			if not root or not hum or not head or not myRoot or hum.Health <= 0 then
+				objects.Box.Visible = false
+				objects.Label.Visible = false
+				objects.HealthBack.Visible = false
+				continue
+			end
+
+			local localPoint = camera.CFrame:PointToObjectSpace(root.Position)
+			if localPoint.Z > 0 then
+				objects.Box.Visible = false
+				objects.Label.Visible = false
+				objects.HealthBack.Visible = false
+				continue
+			end
+
+			local topW = head.Position + Vector3.new(0, head.Size.Y * 0.5 - 0.25, 0)
+			local botW = root.Position - Vector3.new(0, hum.HipHeight + root.Size.Y * 0.5 - 0.15, 0)
+			local top = camera:WorldToViewportPoint(topW)
+			local bottom = camera:WorldToViewportPoint(botW)
+
+			local height = math.abs(bottom.Y - top.Y)
+			if height < 2 then
+				objects.Box.Visible = false
+				objects.Label.Visible = false
+				objects.HealthBack.Visible = false
+				continue
+			end
+
+			local width = height * 0.48
+			local x = top.X - width * 0.5
+			local y = top.Y
+			local thick = 1.5
+
+			objects.Box.Position = UDim2.fromOffset(x, y)
+			objects.Box.Size = UDim2.fromOffset(width, height)
+
+			objects.Sides[1].Position = UDim2.fromOffset(0, 0); objects.Sides[1].Size = UDim2.new(1, 0, 0, thick)
+			objects.Sides[2].Position = UDim2.new(0, 0, 1, -thick); objects.Sides[2].Size = UDim2.new(1, 0, 0, thick)
+			objects.Sides[3].Position = UDim2.fromOffset(0, 0); objects.Sides[3].Size = UDim2.new(0, thick, 1, 0)
+			objects.Sides[4].Position = UDim2.new(1, -thick, 0, 0); objects.Sides[4].Size = UDim2.new(0, thick, 1, 0)
+
+			local pct = math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1)
+			objects.Label.Position = UDim2.fromOffset(x - 50, y - 39)
+			objects.Label.Size = UDim2.fromOffset(width + 100, 36)
+			objects.Label.Text = string.format("%s\n%d studs", player.DisplayName, math.floor((root.Position - myRoot.Position).Magnitude + 0.5))
+
+			objects.HealthBack.Position = UDim2.fromOffset(x - HEALTH_BAR_WIDTH - 3, y)
+			objects.HealthBack.Size = UDim2.fromOffset(HEALTH_BAR_WIDTH, height)
+			objects.HealthFill.Size = UDim2.new(1, 0, pct, 0)
+			objects.HealthFill.BackgroundColor3 = Color3.new(1 - pct, pct, 0)
+
+			objects.Box.Visible = true
+			objects.Label.Visible = true
+			objects.HealthBack.Visible = true
+		end
+	end)
+end)
+
+-- 2. TRACERS & ARROWS
+task.spawn(function()
+	local tGui = Instance.new("ScreenGui")
+	tGui.Name = "PlayerTracers"
+	tGui.ResetOnSpawn = false
+	tGui.IgnoreGuiInset = true
+	tGui.Parent = PlayerGui
+
+	local aGui = Instance.new("ScreenGui")
+	aGui.Name = "CenterPlayerArrows"
+	aGui.ResetOnSpawn = false
+	aGui.IgnoreGuiInset = true
+	aGui.Parent = PlayerGui
+
+	local tracers = {}
+	local arrows = {}
+
+	local function addPlayerVisuals(p)
+		if p == LocalPlayer then return end
+		if not tracers[p] then
+			local line = Instance.new("Frame")
+			line.AnchorPoint = Vector2.new(0.5, 0.5)
+			line.BorderSizePixel = 0
+			line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			line.Visible = false
+			line.Parent = tGui
+			tracers[p] = line
+		end
+		if not arrows[p] then
+			local lbl = Instance.new("TextLabel")
+			lbl.Size = UDim2.fromOffset(22, 22)
+			lbl.AnchorPoint = Vector2.new(0.5, 0.5)
+			lbl.BackgroundTransparency = 1
+			lbl.Text = "▲"
+			lbl.Font = Enum.Font.GothamBold
+			lbl.TextSize = 22
+			lbl.TextColor3 = Color3.new(1, 1, 1)
+			lbl.TextStrokeTransparency = 0.1
+			lbl.Visible = false
+			lbl.Parent = aGui
+			arrows[p] = { label = lbl, angle = nil }
+		end
+	end
+
+	for _, p in ipairs(Players:GetPlayers()) do addPlayerVisuals(p) end
+	Players.PlayerAdded:Connect(addPlayerVisuals)
+
+	RunService.RenderStepped:Connect(function(dt)
+		local tracersActive = Toggles.Tracers.Value
+		local arrowsActive = Toggles.Arrows.Value
+		if not tracersActive and not arrowsActive then return end
+
+		local cam = Workspace.CurrentCamera
+		if not cam then return end
+		local vp = cam.ViewportSize
+		local center = vp / 2
+
+		for p, line in pairs(tracers) do
+			if not tracersActive then line.Visible = false; continue end
+			local char = p.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if not char or not root or not hum or hum.Health <= 0 then
+				line.Visible = false
+				continue
+			end
+			local pt, onScreen = cam:WorldToViewportPoint(root.Position)
+			if not onScreen or pt.Z <= 0 then
+				line.Visible = false
+				continue
+			end
+			local startP = Vector2.new(center.X, vp.Y - 4)
+			local endP = Vector2.new(pt.X, pt.Y)
+			local diff = endP - startP
+			line.Position = UDim2.fromOffset((startP.X + endP.X) / 2, (startP.Y + endP.Y) / 2)
+			line.Size = UDim2.fromOffset(diff.Magnitude, 1)
+			line.Rotation = math.deg(math.atan2(diff.Y, diff.X))
+			line.Visible = true
+		end
+
+		for p, data in pairs(arrows) do
+			local lbl = data.label
+			if not arrowsActive then lbl.Visible = false; continue end
+			local char = p.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+			if not root or not hum or hum.Health <= 0 then lbl.Visible = false; continue end
+			local offset = root.Position - cam.CFrame.Position
+			local localDir = cam.CFrame:VectorToObjectSpace(offset.Unit)
+			local screenDir = Vector2.new(localDir.X, -localDir.Y)
+			if localDir.Z > 0 then screenDir = -screenDir end
+			if screenDir.Magnitude < 0.001 then screenDir = Vector2.new(0, -1) else screenDir = screenDir.Unit end
+			local targetAngle = math.atan2(screenDir.Y, screenDir.X)
+			if not data.angle then data.angle = targetAngle else
+				local diff = math.atan2(math.sin(targetAngle - data.angle), math.cos(targetAngle - data.angle))
+				data.angle = data.angle + diff * (1 - math.exp(-14 * dt))
+			end
+			lbl.Position = UDim2.fromOffset(center.X + math.cos(data.angle) * 65, center.Y + math.sin(data.angle) * 65)
+			lbl.Rotation = math.deg(data.angle) + 90
+			lbl.Visible = true
+		end
+	end)
+end)
+
+-- 3. ORES ESP
+task.spawn(function()
+	local oreFolder = Workspace:WaitForChild("OreSpawns", 5)
+	if not oreFolder then return end
+
+	local COLORS = {
+		["sulfur ore"] = Color3.fromRGB(255, 220, 0),
+		["sulfur"] = Color3.fromRGB(255, 220, 0),
+		["stone"] = Color3.fromRGB(155, 155, 155),
+		["metal ore"] = Color3.fromRGB(165, 85, 45),
+		["metal"] = Color3.fromRGB(165, 85, 45),
+	}
+
+	local oreGui = Instance.new("Folder")
+	oreGui.Name = "OreESPLabels"
+	oreGui.Parent = PlayerGui
+
+	local tracked = {}
+
+	local function getOreType(obj)
+		return COLORS[obj.Name:lower()] and obj.Name or nil
+	end
+
+	local function getOreColor(obj)
+		return COLORS[obj.Name:lower()]
+	end
+
+	local function getPart(obj)
+		if obj:IsA("BasePart") then return obj end
+		if obj:IsA("Model") then
+			return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
+		end
+		return nil
+	end
+
+	local function removeOre(obj)
+		local data = tracked[obj]
+		if not data then return end
+		if data.highlight then data.highlight:Destroy() end
+		if data.label then data.label:Destroy() end
+		tracked[obj] = nil
+	end
+
+	local function registerOre(obj)
+		if tracked[obj] or not obj:IsDescendantOf(oreFolder) then return end
+		if not (obj:IsA("Model") or obj:IsA("BasePart")) then return end
+
+		local oreType = getOreType(obj)
+		local part = getPart(obj)
+		if not oreType or not part then return end
+
+		local color = getOreColor(obj)
+
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "LocalOreHighlight"
+		highlight.Adornee = obj
+		highlight.FillColor = color
+		highlight.OutlineColor = Color3.new(0, 0, 0)
+		highlight.FillTransparency = 0.45
+		highlight.OutlineTransparency = 0
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		highlight.Enabled = false
+		highlight.Parent = obj
+
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = "OreDistanceLabel"
+		billboard.Adornee = part
+		billboard.Size = UDim2.fromOffset(230, 44)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.AlwaysOnTop = true
+		billboard.MaxDistance = 100000
+		billboard.Enabled = false
+		billboard.Parent = oreGui
+
+		local text = Instance.new("TextLabel")
+		text.Name = "OreText"
+		text.Size = UDim2.fromScale(1, 1)
+		text.BackgroundTransparency = 1
+		text.Font = Enum.Font.GothamBold
+		text.TextSize = 15
+		text.TextColor3 = color
+		text.TextStrokeColor3 = Color3.new(0, 0, 0)
+		text.TextStrokeTransparency = 0
+		text.Text = oreType .. "\nDistance: calculating..."
+		text.Parent = billboard
+
+		tracked[obj] = {
+			highlight = highlight,
+			label = billboard,
+			text = text,
+			part = part,
+			type = oreType,
+		}
+	end
+
+	for _, obj in ipairs(oreFolder:GetDescendants()) do
+		registerOre(obj)
+	end
+
+	oreFolder.DescendantAdded:Connect(function(obj)
+		task.defer(function()
+			if obj.Parent and obj:IsDescendantOf(oreFolder) then
+				registerOre(obj)
+			end
+		end)
+	end)
+
+	oreFolder.DescendantRemoving:Connect(function(obj)
+		removeOre(obj)
+	end)
+
+	task.spawn(function()
+		while oreGui.Parent do
+			local active = Toggles.Ores.Value
+			if active then
+				local character = LocalPlayer.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+
+				for obj, data in pairs(tracked) do
+					if not obj:IsDescendantOf(oreFolder) then
+						removeOre(obj)
+					else
+						data.highlight.Enabled = true
+						data.label.Enabled = true
+
+						local part = getPart(obj)
+						if part then
+							data.part = part
+							data.label.Adornee = part
+						end
+
+						if root and data.part and data.part:IsDescendantOf(Workspace) then
+							local distance = (root.Position - data.part.Position).Magnitude
+							data.text.Text = string.format("%s\nDistance: %d studs", data.type, math.floor(distance + 0.5))
+						else
+							data.text.Text = data.type .. "\nDistance: waiting..."
+						end
+					end
+				end
+				task.wait(0.2)
+			else
+				for _, data in pairs(tracked) do
+					if data.highlight then data.highlight.Enabled = false end
+					if data.label then data.label.Enabled = false end
+				end
+				task.wait(0.5)
+			end
+		end
+	end)
+end)
+
+-- 4. FULL BRIGHT
+task.spawn(function()
+	local originalLighting = {
+		Brightness = Lighting.Brightness,
+		ClockTime = Lighting.ClockTime,
+		GlobalShadows = Lighting.GlobalShadows,
+		Ambient = Lighting.Ambient,
+		OutdoorAmbient = Lighting.OutdoorAmbient,
+	}
+
+	Toggles.FullBright:OnChanged(function()
+		if Toggles.FullBright.Value then
+			Lighting.Brightness = 3
+			Lighting.ClockTime = 14
+			Lighting.GlobalShadows = false
+			Lighting.Ambient = Color3.fromRGB(190, 190, 190)
+			Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200)
+		else
+			Lighting.Brightness = originalLighting.Brightness
+			Lighting.ClockTime = originalLighting.ClockTime
+			Lighting.GlobalShadows = originalLighting.GlobalShadows
+			Lighting.Ambient = originalLighting.Ambient
+			Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
+		end
+	end)
+end)
+
+-- 5. X-RAY
+task.spawn(function()
+	local originalTrans = {}
+
+	local function getXRayFolder()
+		local pbs = Workspace:FindFirstChild("PlayerBuiltStructures")
+		return pbs and pbs:FindFirstChild("Structures")
+	end
+
+	local function applyXRay()
+		local folder = getXRayFolder()
+		if not folder then return end
+		local trans = Options.XRayTrans.Value / 100
+		for _, part in ipairs(folder:GetDescendants()) do
+			if part:IsA("BasePart") then
+				if originalTrans[part] == nil then
+					originalTrans[part] = part.LocalTransparencyModifier
+				end
+				part.LocalTransparencyModifier = trans
+			end
+		end
+	end
+
+	local function restoreXRay()
+		for part, orig in pairs(originalTrans) do
+			if part and part.Parent then
+				part.LocalTransparencyModifier = orig
+			end
+		end
+		table.clear(originalTrans)
+	end
+
+	Toggles.XRay:OnChanged(function()
+		if Toggles.XRay.Value then
+			applyXRay()
+		else
+			restoreXRay()
+		end
+	end)
+
+	Options.XRayTrans:OnChanged(function()
+		if Toggles.XRay.Value then
+			applyXRay()
+		end
+	end)
+
+	Workspace.DescendantAdded:Connect(function(obj)
+		if Toggles.XRay.Value and obj:IsA("BasePart") then
+			local folder = getXRayFolder()
+			if folder and obj:IsDescendantOf(folder) then
+				originalTrans[obj] = obj.LocalTransparencyModifier
+				obj.LocalTransparencyModifier = Options.XRayTrans.Value / 100
+			end
+		end
+	end)
+end)
+
+-- 6. AIM ASSIST + FOV CIRCLE
+task.spawn(function()
+	local aimGui = Instance.new("ScreenGui")
+	aimGui.Name = "AimAssistGui"
+	aimGui.ResetOnSpawn = false
+	aimGui.Parent = PlayerGui
+
+	local fovCircle = Instance.new("Frame")
+	fovCircle.Name = "FOVCircle"
+	fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+	fovCircle.Position = UDim2.fromScale(0.5, 0.5)
+	fovCircle.BackgroundTransparency = 1
+	fovCircle.BorderSizePixel = 0
+	fovCircle.Parent = aimGui
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Color3.fromRGB(75, 180, 255)
+	stroke.Thickness = 1.5
+	stroke.Parent = fovCircle
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = fovCircle
+
+	RunService.RenderStepped:Connect(function()
+		local fovVal = Options.AimFOV.Value
+		fovCircle.Size = UDim2.fromOffset(fovVal * 2, fovVal * 2)
+		fovCircle.Visible = Toggles.DrawFOV.Value
+
+		if Toggles.AimAssist.Value and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+			local cam = Workspace.CurrentCamera
+			if not cam then return end
+			local center = cam.ViewportSize / 2
+			local closestPlr, closestDist = nil, fovVal
+			for _, p in ipairs(Players:GetPlayers()) do
+				if p ~= LocalPlayer and p.Character then
+					local char = p.Character
+					local hum = char:FindFirstChildOfClass("Humanoid")
+					local part = char:FindFirstChild(Options.AimPart.Value) or char:FindFirstChild("Head")
+					local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+					local tRoot = char:FindFirstChild("HumanoidRootPart")
+					if hum and hum.Health > 0 and part and myRoot and tRoot then
+						if (tRoot.Position - myRoot.Position).Magnitude <= Options.AimDist.Value then
+							local scrPos, vis = cam:WorldToViewportPoint(part.Position)
+							if vis and scrPos.Z > 0 then
+								local dist = (Vector2.new(scrPos.X, scrPos.Y) - center).Magnitude
+								if dist <= closestDist then
+									closestDist = dist
+									closestPlr = p
+								end
+							end
+						end
+					end
+				end
+			end
+			if closestPlr and closestPlr.Character then
+				local part = closestPlr.Character:FindFirstChild(Options.AimPart.Value)
+				if part then
+					local desired = CFrame.lookAt(cam.CFrame.Position, part.Position)
+					cam.CFrame = cam.CFrame:Lerp(desired, 0.18)
+				end
+			end
+		end
+	end)
+end)
+
+-- 7. CUSTOM CROSSHAIR (Надежный GUI-прицел с длиной, шириной, зазором и поворотом)
+task.spawn(function()
+	local chGui = Instance.new("ScreenGui")
+	chGui.Name = "SPECTREWARE_Crosshair"
+	chGui.ResetOnSpawn = false
+	chGui.IgnoreGuiInset = true
+	chGui.Parent = PlayerGui
+
+	local centerFrame = Instance.new("Frame")
+	centerFrame.BackgroundTransparency = 1
+	centerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	centerFrame.Position = UDim2.fromScale(0.5, 0.5)
+	centerFrame.Size = UDim2.fromOffset(0, 0)
+	centerFrame.Parent = chGui
+
+	local lines = {}
+	for i = 1, 4 do
+		local line = Instance.new("Frame")
+		line.BorderSizePixel = 0
+		line.AnchorPoint = Vector2.new(0.5, 0.5)
+		line.Parent = centerFrame
+		lines[i] = line
+	end
+
+	RunService.RenderStepped:Connect(function()
+		local active = Toggles.CustomCrosshair.Value
+		chGui.Enabled = active
+		if not active then return end
+
+		local col = Options.CHColor.Value
+		local length = Options.CHLength.Value
+		local width = Options.CHWidth.Value
+		local gap = Options.CHGap.Value
+		local rotation = Options.CHRotation.Value
+
+		centerFrame.Rotation = rotation
+
+		-- Top
+		lines[1].BackgroundColor3 = col
+		lines[1].Size = UDim2.fromOffset(width, length)
+		lines[1].Position = UDim2.fromOffset(0, -(gap + length / 2))
+
+		-- Bottom
+		lines[2].BackgroundColor3 = col
+		lines[2].Size = UDim2.fromOffset(width, length)
+		lines[2].Position = UDim2.fromOffset(0, gap + length / 2)
+
+		-- Left
+		lines[3].BackgroundColor3 = col
+		lines[3].Size = UDim2.fromOffset(length, width)
+		lines[3].Position = UDim2.fromOffset(-(gap + length / 2), 0)
+
+		-- Right
+		lines[4].BackgroundColor3 = col
+		lines[4].Size = UDim2.fromOffset(length, width)
+		lines[4].Position = UDim2.fromOffset(gap + length / 2, 0)
+	end)
+end)
+
+-- 8. MOVEMENT HACKS
+task.spawn(function()
+	UserInputService.JumpRequest:Connect(function()
+		if Toggles.InfJump.Value and LocalPlayer.Character then
+			local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+			if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+		end
+	end)
+
+	RunService.Stepped:Connect(function()
+		local char = LocalPlayer.Character
+		if not char then return end
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			if Toggles.Sprint.Value then
+				hum.WalkSpeed = (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)) and 36 or 16
+			else
+				hum.WalkSpeed = 16
+			end
+		end
+		if Toggles.Noclip.Value then
+			for _, obj in ipairs(char:GetDescendants()) do
+				if obj:IsA("BasePart") then obj.CanCollide = false end
+			end
+		end
+	end)
+end)
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
+ThemeManager:SetFolder("SPECTREWARE")
+SaveManager:SetFolder("SPECTREWARE/config")
+SaveManager:BuildConfigSection(Tabs["UI Settings"])
+ThemeManager:ApplyToTab(Tabs["UI Settings"])
+SaveManager:LoadAutoloadConfig()
+
+print("[SPECTREWARE] Fully Loaded with Configurable Binds & Working Crosshair!")
