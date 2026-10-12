@@ -1,5 +1,5 @@
 --==================================================
--- SPECTREWARE SCRIPT HUB (Zero-Lag, Custom Crosshair & All Binds)
+-- SPECTREWARE SCRIPT HUB (Death-Persistent & Optimized)
 --==================================================
 
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
@@ -16,7 +16,7 @@ Library.ShowToggleFrameInKeybinds = true
 local Window = Library:CreateWindow({
 	Title = "SPECTREWARE",
 	Footer = "SPECTREHUB",
-	Icon = 132755590777389,
+	Icon = 87830698430168,
 	NotifySide = "Right",
 	ShowCustomCursor = true,
 })
@@ -69,6 +69,8 @@ CrosshairGroup:AddSlider("CHRotation", { Text = "Rotation", Default = 0, Min = 0
 MoveGroup:AddToggle("InfJump", { Text = "Infinite Jump", Default = false }):AddKeyPicker("InfJumpKey", { Default = "None", Mode = "Toggle", Text = "Infinite Jump" })
 MoveGroup:AddToggle("Sprint", { Text = "Sprint (Shift)", Default = false }):AddKeyPicker("SprintKey", { Default = "None", Mode = "Toggle", Text = "Sprint" })
 MoveGroup:AddToggle("Noclip", { Text = "Noclip", Default = false }):AddKeyPicker("NoclipKey", { Default = "N", Mode = "Toggle", Text = "Noclip" })
+MoveGroup:AddToggle("Freecam", { Text = "Freecam", Default = false }):AddKeyPicker("FreecamKey", { Default = "None", Mode = "Toggle", Text = "Freecam" })
+MoveGroup:AddSlider("FreecamSpeed", { Text = "Freecam Speed", Default = 50, Min = 10, Max = 200, Rounding = 0 })
 
 local MenuGroup = Tabs["UI Settings"]:AddGroupbox({ Side = "Left", Name = "Menu", IconName = "wrench" })
 MenuGroup:AddToggle("KeybindMenuOpen", { Default = Library.KeybindFrame.Visible, Text = "Open Keybind Menu", Callback = function(v) Library.KeybindFrame.Visible = v end })
@@ -79,7 +81,7 @@ Library.ToggleKeybind = Options.MenuKeybind
 
 
 --==================================================
--- ZERO-LAG CORE LOGIC
+-- STABLE CORE LOGIC (DEATH-RESISTANT)
 --==================================================
 
 local Players = game:GetService("Players")
@@ -89,20 +91,13 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- 1. PLAYER ESP V3
+-- 1. PLAYER ESP V3 (С защитой от смерти)
 task.spawn(function()
 	local BOX_COLOR = Color3.fromRGB(255, 255, 255)
 	local HEALTH_BAR_WIDTH = 4
 	local espObjects = {}
-
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "PlayerESP"
-	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
-	gui.DisplayOrder = 100
-	gui.Parent = PlayerGui
+	local gui = nil
 
 	local function createFrame(parent, color, zIndex)
 		local frame = Instance.new("Frame")
@@ -114,7 +109,13 @@ task.spawn(function()
 	end
 
 	local function createESP(player)
-		if player == LocalPlayer or espObjects[player] then return end
+		if player == LocalPlayer or not gui then return end
+		if espObjects[player] then
+			if espObjects[player].Box then espObjects[player].Box:Destroy() end
+			if espObjects[player].Label then espObjects[player].Label:Destroy() end
+			if espObjects[player].HealthBack then espObjects[player].HealthBack:Destroy() end
+		end
+
 		local box = Instance.new("Frame")
 		box.BackgroundTransparency = 1
 		box.Visible = false
@@ -144,29 +145,52 @@ task.spawn(function()
 		espObjects[player] = { Box = box, Sides = sides, Label = label, HealthBack = healthBack, HealthFill = healthFill }
 	end
 
-	for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
+	local function initPlayerESP()
+		if gui then gui:Destroy() end
+		espObjects = {}
+		gui = Instance.new("ScreenGui")
+		gui.Name = "SPECTREWARE_PlayerESP"
+		gui.ResetOnSpawn = false
+		gui.IgnoreGuiInset = true
+		gui.DisplayOrder = 100
+		gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+		for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
+	end
+
+	initPlayerESP()
 	Players.PlayerAdded:Connect(createESP)
+	Players.PlayerRemoving:Connect(function(p)
+		if espObjects[p] then
+			if espObjects[p].Box then espObjects[p].Box:Destroy() end
+			if espObjects[p].Label then espObjects[p].Label:Destroy() end
+			if espObjects[p].HealthBack then espObjects[p].HealthBack:Destroy() end
+			espObjects[p] = nil
+		end
+	end)
+
+	LocalPlayer.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		initPlayerESP()
+	end)
 
 	RunService.RenderStepped:Connect(function()
 		if not Toggles.PlayerESP.Value then return end
-
 		local camera = Workspace.CurrentCamera
 		if not camera then return end
 
+		local myChar = LocalPlayer.Character
+		local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
 		for player, objects in pairs(espObjects) do
 			local char = player.Character
-			local myChar = LocalPlayer.Character
-			if not char or not myChar then
-				objects.Box.Visible = false
-				objects.Label.Visible = false
-				objects.HealthBack.Visible = false
+			if not char or not myChar or not objects.Box or not objects.Box.Parent then
 				continue
 			end
 
 			local root = char:FindFirstChild("HumanoidRootPart")
 			local hum = char:FindFirstChildOfClass("Humanoid")
 			local head = char:FindFirstChild("Head")
-			local myRoot = myChar:FindFirstChild("HumanoidRootPart")
 
 			if not root or not hum or not head or not myRoot or hum.Health <= 0 then
 				objects.Box.Visible = false
@@ -226,26 +250,63 @@ task.spawn(function()
 	end)
 end)
 
--- 2. TRACERS & ARROWS
+-- 2. TRACERS & ARROWS (С защитой от смерти)
 task.spawn(function()
-	local tGui = Instance.new("ScreenGui")
-	tGui.Name = "PlayerTracers"
-	tGui.ResetOnSpawn = false
-	tGui.IgnoreGuiInset = true
-	tGui.Parent = PlayerGui
-
-	local aGui = Instance.new("ScreenGui")
-	aGui.Name = "CenterPlayerArrows"
-	aGui.ResetOnSpawn = false
-	aGui.IgnoreGuiInset = true
-	aGui.Parent = PlayerGui
-
+	local tGui, aGui
 	local tracers = {}
 	local arrows = {}
 
-	local function addPlayerVisuals(p)
-		if p == LocalPlayer then return end
-		if not tracers[p] then
+	local function initTracersAndArrows()
+		if tGui then tGui:Destroy() end
+		if aGui then aGui:Destroy() end
+		tracers = {}
+		arrows = {}
+
+		tGui = Instance.new("ScreenGui")
+		tGui.Name = "SPECTREWARE_Tracers"
+		tGui.ResetOnSpawn = false
+		tGui.IgnoreGuiInset = true
+		tGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+		aGui = Instance.new("ScreenGui")
+		aGui.Name = "SPECTREWARE_Arrows"
+		aGui.ResetOnSpawn = false
+		aGui.IgnoreGuiInset = true
+		aGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+		local function addPlayerVisuals(p)
+			if p == LocalPlayer then return end
+			if not tracers[p] then
+				local line = Instance.new("Frame")
+				line.AnchorPoint = Vector2.new(0.5, 0.5)
+				line.BorderSizePixel = 0
+				line.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+				line.Visible = false
+				line.Parent = tGui
+				tracers[p] = line
+			end
+			if not arrows[p] then
+				local lbl = Instance.new("TextLabel")
+				lbl.Size = UDim2.fromOffset(22, 22)
+				lbl.AnchorPoint = Vector2.new(0.5, 0.5)
+				lbl.BackgroundTransparency = 1
+				lbl.Text = "▲"
+				lbl.Font = Enum.Font.GothamBold
+				lbl.TextSize = 22
+				lbl.TextColor3 = Color3.new(1, 1, 1)
+				lbl.TextStrokeTransparency = 0.1
+				lbl.Visible = false
+				lbl.Parent = aGui
+				arrows[p] = { label = lbl, angle = nil }
+			end
+		end
+
+		for _, p in ipairs(Players:GetPlayers()) do addPlayerVisuals(p) end
+	end
+
+	initTracersAndArrows()
+	Players.PlayerAdded:Connect(function(p)
+		if p ~= LocalPlayer and tGui then
 			local line = Instance.new("Frame")
 			line.AnchorPoint = Vector2.new(0.5, 0.5)
 			line.BorderSizePixel = 0
@@ -254,7 +315,7 @@ task.spawn(function()
 			line.Parent = tGui
 			tracers[p] = line
 		end
-		if not arrows[p] then
+		if p ~= LocalPlayer and aGui then
 			local lbl = Instance.new("TextLabel")
 			lbl.Size = UDim2.fromOffset(22, 22)
 			lbl.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -268,10 +329,12 @@ task.spawn(function()
 			lbl.Parent = aGui
 			arrows[p] = { label = lbl, angle = nil }
 		end
-	end
+	end)
 
-	for _, p in ipairs(Players:GetPlayers()) do addPlayerVisuals(p) end
-	Players.PlayerAdded:Connect(addPlayerVisuals)
+	LocalPlayer.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		initTracersAndArrows()
+	end)
 
 	RunService.RenderStepped:Connect(function(dt)
 		local tracersActive = Toggles.Tracers.Value
@@ -284,7 +347,7 @@ task.spawn(function()
 		local center = vp / 2
 
 		for p, line in pairs(tracers) do
-			if not tracersActive then line.Visible = false; continue end
+			if not tracersActive or not line.Parent then line.Visible = false; continue end
 			local char = p.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -308,7 +371,7 @@ task.spawn(function()
 
 		for p, data in pairs(arrows) do
 			local lbl = data.label
-			if not arrowsActive then lbl.Visible = false; continue end
+			if not arrowsActive or not lbl.Parent then lbl.Visible = false; continue end
 			local char = p.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
 			local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -343,11 +406,21 @@ task.spawn(function()
 		["metal"] = Color3.fromRGB(165, 85, 45),
 	}
 
-	local oreGui = Instance.new("Folder")
-	oreGui.Name = "OreESPLabels"
-	oreGui.Parent = PlayerGui
-
+	local oreGui = nil
 	local tracked = {}
+
+	local function initOreGui()
+		if oreGui then oreGui:Destroy() end
+		oreGui = Instance.new("Folder")
+		oreGui.Name = "SPECTREWARE_OreESPLabels"
+		oreGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	end
+	initOreGui()
+
+	LocalPlayer.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		initOreGui()
+	end)
 
 	local function getOreType(obj)
 		return COLORS[obj.Name:lower()] and obj.Name or nil
@@ -442,40 +515,198 @@ task.spawn(function()
 	end)
 
 	task.spawn(function()
-		while oreGui.Parent do
-			local active = Toggles.Ores.Value
-			if active then
-				local character = LocalPlayer.Character
-				local root = character and character:FindFirstChild("HumanoidRootPart")
+		while true do
+			task.wait(0.2)
+			if oreGui and oreGui.Parent then
+				local active = Toggles.Ores.Value
+				if active then
+					local character = LocalPlayer.Character
+					local root = character and character:FindFirstChild("HumanoidRootPart")
 
-				for obj, data in pairs(tracked) do
-					if not obj:IsDescendantOf(oreFolder) then
-						removeOre(obj)
-					else
-						data.highlight.Enabled = true
-						data.label.Enabled = true
-
-						local part = getPart(obj)
-						if part then
-							data.part = part
-							data.label.Adornee = part
-						end
-
-						if root and data.part and data.part:IsDescendantOf(Workspace) then
-							local distance = (root.Position - data.part.Position).Magnitude
-							data.text.Text = string.format("%s\nDistance: %d studs", data.type, math.floor(distance + 0.5))
+					for obj, data in pairs(tracked) do
+						if not obj:IsDescendantOf(oreFolder) then
+							removeOre(obj)
 						else
-							data.text.Text = data.type .. "\nDistance: waiting..."
+							data.highlight.Enabled = true
+							if data.label.Parent ~= oreGui then data.label.Parent = oreGui end
+							data.label.Enabled = true
+
+							local part = getPart(obj)
+							if part then
+								data.part = part
+								data.label.Adornee = part
+							end
+
+							if root and data.part and data.part:IsDescendantOf(Workspace) then
+								local distance = (root.Position - data.part.Position).Magnitude
+								data.text.Text = string.format("%s\nDistance: %d studs", data.type, math.floor(distance + 0.5))
+							else
+								data.text.Text = data.type .. "\nDistance: waiting..."
+							end
 						end
 					end
+				else
+					for _, data in pairs(tracked) do
+						if data.highlight then data.highlight.Enabled = false end
+						if data.label then data.label.Enabled = false end
+					end
 				end
-				task.wait(0.2)
+			end
+		end
+	end)
+end)
+
+-- 3.1. FIXED WORLD ESP (Crates, Locked Crates, Boats, NPCs с защитой от смерти)
+task.spawn(function()
+	local worldGui = nil
+	local trackedWorldObjects = {}
+
+	local function initWorldGui()
+		if worldGui then worldGui:Destroy() end
+		worldGui = Instance.new("Folder")
+		worldGui.Name = "SPECTREWARE_WorldESP"
+		worldGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	end
+	initWorldGui()
+
+	LocalPlayer.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		initWorldGui()
+	end)
+
+	local function removeWorldESP(obj)
+		local data = trackedWorldObjects[obj]
+		if not data then return end
+		if data.highlight then data.highlight:Destroy() end
+		if data.label then data.label:Destroy() end
+		trackedWorldObjects[obj] = nil
+	end
+
+	local function getPart(obj)
+		if obj:IsA("BasePart") then return obj end
+		if obj:IsA("Model") then
+			return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
+		end
+		return nil
+	end
+
+	local function registerWorldObj(obj, category, color, displayName)
+		if trackedWorldObjects[obj] then return end
+		local part = getPart(obj)
+		if not part or not worldGui then return end
+
+		local highlight = Instance.new("Highlight")
+		highlight.Adornee = obj
+		highlight.FillColor = color
+		highlight.OutlineColor = Color3.new(0, 0, 0)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineTransparency = 0
+		highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+		highlight.Enabled = false
+		highlight.Parent = obj
+
+		local billboard = Instance.new("BillboardGui")
+		billboard.Adornee = part
+		billboard.Size = UDim2.fromOffset(200, 36)
+		billboard.StudsOffset = Vector3.new(0, 3, 0)
+		billboard.AlwaysOnTop = true
+		billboard.Enabled = false
+		billboard.Parent = worldGui
+
+		local text = Instance.new("TextLabel")
+		text.Size = UDim2.fromScale(1, 1)
+		text.BackgroundTransparency = 1
+		text.Font = Enum.Font.GothamBold
+		text.TextSize = 14
+		text.TextColor3 = color
+		text.TextStrokeColor3 = Color3.new(0, 0, 0)
+		text.TextStrokeTransparency = 0
+		text.Text = displayName .. "\nDistance: 0 studs"
+		text.Parent = billboard
+
+		trackedWorldObjects[obj] = {
+			highlight = highlight,
+			label = billboard,
+			text = text,
+			part = part,
+			category = category,
+			name = displayName
+		}
+	end
+
+	local function scanWorldFolders()
+		local genMonuments = Workspace:FindFirstChild("GeneratedMonuments")
+		if genMonuments then
+			for _, desc in ipairs(genMonuments:GetDescendants()) do
+				local nameLower = desc.Name:lower()
+				if nameLower == "locked crate" then
+					registerWorldObj(desc, "LockedCrates", Color3.fromRGB(255, 50, 50), "Locked Crate")
+				elseif nameLower == "crate" then
+					registerWorldObj(desc, "Crates", Color3.fromRGB(255, 165, 0), "Crate")
+				elseif nameLower == "scientists" or (desc.Parent and desc.Parent.Name:lower() == "scientists") then
+					if desc:IsA("Model") or desc:IsA("BasePart") then
+						registerWorldObj(desc, "NPCs", Color3.fromRGB(220, 50, 220), "Scientist")
+					end
+				end
+			end
+		end
+
+		local boatSpawns = Workspace:FindFirstChild("BoatSpawns")
+		if boatSpawns then
+			for _, desc in ipairs(boatSpawns:GetDescendants()) do
+				if (desc:IsA("Model") or desc:IsA("BasePart")) and desc.Name:lower() ~= "boatspawns" then
+					registerWorldObj(desc, "Boats", Color3.fromRGB(50, 150, 255), "Boat")
+				end
+			end
+		end
+	end
+
+	scanWorldFolders()
+	task.spawn(function()
+		while true do
+			task.wait(4)
+			scanWorldFolders()
+		end
+	end)
+
+	Workspace.DescendantRemoving:Connect(function(obj)
+		removeWorldESP(obj)
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		if not worldGui or not worldGui.Parent then return end
+		local char = LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+
+		local cratesActive = Toggles.Crates.Value
+		local lCratesActive = Toggles.LockedCrates.Value
+		local boatsActive = Toggles.Boats.Value
+		local npcsActive = Toggles.NPCs.Value
+
+		for obj, data in pairs(trackedWorldObjects) do
+			if not obj.Parent then
+				removeWorldESP(obj)
 			else
-				for _, data in pairs(tracked) do
-					if data.highlight then data.highlight.Enabled = false end
-					if data.label then data.label.Enabled = false end
+				local active = false
+				if data.category == "Crates" then active = cratesActive
+				elseif data.category == "LockedCrates" then active = lCratesActive
+				elseif data.category == "Boats" then active = boatsActive
+				elseif data.category == "NPCs" then active = npcsActive end
+
+				if active then
+					data.highlight.Enabled = true
+					if data.label.Parent ~= worldGui then data.label.Parent = worldGui end
+					data.label.Enabled = true
+					if root and data.part and data.part:IsDescendantOf(Workspace) then
+						local dist = (root.Position - data.part.Position).Magnitude
+						data.text.Text = string.format("%s\nDistance: %d studs", data.name, math.floor(dist + 0.5))
+					else
+						data.text.Text = data.name .. "\nDistance: --"
+					end
+				else
+					data.highlight.Enabled = false
+					data.label.Enabled = false
 				end
-				task.wait(0.5)
 			end
 		end
 	end)
@@ -508,20 +739,29 @@ task.spawn(function()
 	end)
 end)
 
--- 5. X-RAY
+-- 5. X-RAY (OPTIMIZED & LAG-FREE)
 task.spawn(function()
 	local originalTrans = {}
+	local xRayFolder = nil
 
-	local function getXRayFolder()
+	local function updateXRayFolder()
 		local pbs = Workspace:FindFirstChild("PlayerBuiltStructures")
-		return pbs and pbs:FindFirstChild("Structures")
+		xRayFolder = pbs and pbs:FindFirstChild("Structures")
 	end
 
+	updateXRayFolder()
+	Workspace.ChildAdded:Connect(function(child)
+		if child.Name == "PlayerBuiltStructures" then
+			task.wait(0.5)
+			updateXRayFolder()
+		end
+	end)
+
 	local function applyXRay()
-		local folder = getXRayFolder()
-		if not folder then return end
+		if not xRayFolder then updateXRayFolder() end
+		if not xRayFolder then return end
 		local trans = Options.XRayTrans.Value / 100
-		for _, part in ipairs(folder:GetDescendants()) do
+		for _, part in ipairs(xRayFolder:GetDescendants()) do
 			if part:IsA("BasePart") then
 				if originalTrans[part] == nil then
 					originalTrans[part] = part.LocalTransparencyModifier
@@ -553,43 +793,47 @@ task.spawn(function()
 			applyXRay()
 		end
 	end)
-
-	Workspace.DescendantAdded:Connect(function(obj)
-		if Toggles.XRay.Value and obj:IsA("BasePart") then
-			local folder = getXRayFolder()
-			if folder and obj:IsDescendantOf(folder) then
-				originalTrans[obj] = obj.LocalTransparencyModifier
-				obj.LocalTransparencyModifier = Options.XRayTrans.Value / 100
-			end
-		end
-	end)
 end)
 
--- 6. AIM ASSIST + FOV CIRCLE
+-- 6. AIM ASSIST + FOV CIRCLE (С защитой от смерти)
 task.spawn(function()
-	local aimGui = Instance.new("ScreenGui")
-	aimGui.Name = "AimAssistGui"
-	aimGui.ResetOnSpawn = false
-	aimGui.Parent = PlayerGui
+	local aimGui = nil
+	local fovCircle = nil
 
-	local fovCircle = Instance.new("Frame")
-	fovCircle.Name = "FOVCircle"
-	fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-	fovCircle.Position = UDim2.fromScale(0.5, 0.5)
-	fovCircle.BackgroundTransparency = 1
-	fovCircle.BorderSizePixel = 0
-	fovCircle.Parent = aimGui
+	local function initAimGui()
+		if aimGui then aimGui:Destroy() end
+		aimGui = Instance.new("ScreenGui")
+		aimGui.Name = "SPECTREWARE_AimAssistGui"
+		aimGui.ResetOnSpawn = false
+		aimGui.IgnoreGuiInset = true
+		aimGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(75, 180, 255)
-	stroke.Thickness = 1.5
-	stroke.Parent = fovCircle
+		fovCircle = Instance.new("Frame")
+		fovCircle.Name = "FOVCircle"
+		fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+		fovCircle.Position = UDim2.fromScale(0.5, 0.5)
+		fovCircle.BackgroundTransparency = 1
+		fovCircle.BorderSizePixel = 0
+		fovCircle.Parent = aimGui
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(1, 0)
-	corner.Parent = fovCircle
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(75, 180, 255)
+		stroke.Thickness = 1.5
+		stroke.Parent = fovCircle
+
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(1, 0)
+		corner.Parent = fovCircle
+	end
+
+	initAimGui()
+	LocalPlayer.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		initAimGui()
+	end)
 
 	RunService.RenderStepped:Connect(function()
+		if not fovCircle or not fovCircle.Parent then return end
 		local fovVal = Options.AimFOV.Value
 		fovCircle.Size = UDim2.fromOffset(fovVal * 2, fovVal * 2)
 		fovCircle.Visible = Toggles.DrawFOV.Value
@@ -597,16 +841,23 @@ task.spawn(function()
 		if Toggles.AimAssist.Value and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
 			local cam = Workspace.CurrentCamera
 			if not cam then return end
+
+			local myChar = LocalPlayer.Character
+			local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+			local myHum = myChar and myChar:FindFirstChildOfClass("Humanoid")
+			if not myChar or not myRoot or not myHum or myHum.Health <= 0 then return end
+
 			local center = cam.ViewportSize / 2
 			local closestPlr, closestDist = nil, fovVal
+
 			for _, p in ipairs(Players:GetPlayers()) do
 				if p ~= LocalPlayer and p.Character then
 					local char = p.Character
 					local hum = char:FindFirstChildOfClass("Humanoid")
 					local part = char:FindFirstChild(Options.AimPart.Value) or char:FindFirstChild("Head")
-					local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 					local tRoot = char:FindFirstChild("HumanoidRootPart")
-					if hum and hum.Health > 0 and part and myRoot and tRoot then
+
+					if hum and hum.Health > 0 and part and tRoot then
 						if (tRoot.Position - myRoot.Position).Magnitude <= Options.AimDist.Value then
 							local scrPos, vis = cam:WorldToViewportPoint(part.Position)
 							if vis and scrPos.Z > 0 then
@@ -620,10 +871,11 @@ task.spawn(function()
 					end
 				end
 			end
+
 			if closestPlr and closestPlr.Character then
-				local part = closestPlr.Character:FindFirstChild(Options.AimPart.Value)
-				if part then
-					local desired = CFrame.lookAt(cam.CFrame.Position, part.Position)
+				local targetPart = closestPlr.Character:FindFirstChild(Options.AimPart.Value) or closestPlr.Character:FindFirstChild("Head")
+				if targetPart then
+					local desired = CFrame.lookAt(cam.CFrame.Position, targetPart.Position)
 					cam.CFrame = cam.CFrame:Lerp(desired, 0.18)
 				end
 			end
@@ -631,31 +883,45 @@ task.spawn(function()
 	end)
 end)
 
--- 7. CUSTOM CROSSHAIR (Надежный GUI-прицел с длиной, шириной, зазором и поворотом)
+-- 7. CUSTOM CROSSHAIR (С защитой от смерти)
 task.spawn(function()
-	local chGui = Instance.new("ScreenGui")
-	chGui.Name = "SPECTREWARE_Crosshair"
-	chGui.ResetOnSpawn = false
-	chGui.IgnoreGuiInset = true
-	chGui.Parent = PlayerGui
-
-	local centerFrame = Instance.new("Frame")
-	centerFrame.BackgroundTransparency = 1
-	centerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-	centerFrame.Position = UDim2.fromScale(0.5, 0.5)
-	centerFrame.Size = UDim2.fromOffset(0, 0)
-	centerFrame.Parent = chGui
-
+	local chGui = nil
+	local centerFrame = nil
 	local lines = {}
-	for i = 1, 4 do
-		local line = Instance.new("Frame")
-		line.BorderSizePixel = 0
-		line.AnchorPoint = Vector2.new(0.5, 0.5)
-		line.Parent = centerFrame
-		lines[i] = line
+
+	local function initCrosshair()
+		if chGui then chGui:Destroy() end
+		chGui = Instance.new("ScreenGui")
+		chGui.Name = "SPECTREWARE_Crosshair"
+		chGui.ResetOnSpawn = false
+		chGui.IgnoreGuiInset = true
+		chGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+		centerFrame = Instance.new("Frame")
+		centerFrame.BackgroundTransparency = 1
+		centerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+		centerFrame.Position = UDim2.fromScale(0.5, 0.5)
+		centerFrame.Size = UDim2.fromOffset(0, 0)
+		centerFrame.Parent = chGui
+
+		lines = {}
+		for i = 1, 4 do
+			local line = Instance.new("Frame")
+			line.BorderSizePixel = 0
+			line.AnchorPoint = Vector2.new(0.5, 0.5)
+			line.Parent = centerFrame
+			lines[i] = line
+		end
 	end
 
+	initCrosshair()
+	LocalPlayer.CharacterAdded:Connect(function()
+		task.wait(0.5)
+		initCrosshair()
+	end)
+
 	RunService.RenderStepped:Connect(function()
+		if not chGui or not chGui.Parent or #lines < 4 then return end
 		local active = Toggles.CustomCrosshair.Value
 		chGui.Enabled = active
 		if not active then return end
@@ -668,29 +934,25 @@ task.spawn(function()
 
 		centerFrame.Rotation = rotation
 
-		-- Top
 		lines[1].BackgroundColor3 = col
 		lines[1].Size = UDim2.fromOffset(width, length)
 		lines[1].Position = UDim2.fromOffset(0, -(gap + length / 2))
 
-		-- Bottom
 		lines[2].BackgroundColor3 = col
 		lines[2].Size = UDim2.fromOffset(width, length)
 		lines[2].Position = UDim2.fromOffset(0, gap + length / 2)
 
-		-- Left
 		lines[3].BackgroundColor3 = col
 		lines[3].Size = UDim2.fromOffset(length, width)
 		lines[3].Position = UDim2.fromOffset(-(gap + length / 2), 0)
 
-		-- Right
 		lines[4].BackgroundColor3 = col
 		lines[4].Size = UDim2.fromOffset(length, width)
 		lines[4].Position = UDim2.fromOffset(gap + length / 2, 0)
 	end)
 end)
 
--- 8. MOVEMENT HACKS
+-- 8. MOVEMENT HACKS & FREECAM
 task.spawn(function()
 	UserInputService.JumpRequest:Connect(function()
 		if Toggles.InfJump.Value and LocalPlayer.Character then
@@ -699,7 +961,24 @@ task.spawn(function()
 		end
 	end)
 
-	RunService.Stepped:Connect(function()
+	local freecamPos = Workspace.CurrentCamera.CFrame.Position
+	local freecamRot = Vector2.new(0, 0)
+
+	Toggles.Freecam:OnChanged(function()
+		local cam = Workspace.CurrentCamera
+		if Toggles.Freecam.Value then
+			if cam then
+				freecamPos = cam.CFrame.Position
+				local rx, ry, rz = cam.CFrame:ToOrientation()
+				freecamRot = Vector2.new(ry, rx)
+			end
+			cam.CameraType = Enum.CameraType.Scriptable
+		else
+			cam.CameraType = Enum.CameraType.Custom
+		end
+	end)
+
+	RunService.Stepped:Connect(function(dt)
 		local char = LocalPlayer.Character
 		if not char then return end
 		local hum = char:FindFirstChildOfClass("Humanoid")
@@ -716,6 +995,49 @@ task.spawn(function()
 			end
 		end
 	end)
+
+	RunService.RenderStepped:Connect(function(dt)
+		if not Toggles.Freecam.Value then return end
+		local cam = Workspace.CurrentCamera
+		if not cam then return end
+
+		cam.CameraType = Enum.CameraType.Scriptable
+
+		local speed = Options.FreecamSpeed.Value
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+			speed = speed * 2.5
+		end
+
+		local moveVector = Vector3.new()
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then
+			moveVector = moveVector + Vector3.new(0, 0, -1)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then
+			moveVector = moveVector + Vector3.new(0, 0, 1)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then
+			moveVector = moveVector + Vector3.new(-1, 0, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then
+			moveVector = moveVector + Vector3.new(1, 0, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.E) then
+			moveVector = moveVector + Vector3.new(0, 1, 0)
+		end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Q) then
+			moveVector = moveVector + Vector3.new(0, -1, 0)
+		end
+
+		if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+			local delta = UserInputService:GetMouseDelta()
+			freecamRot = freecamRot - Vector2.new(delta.X * 0.003, delta.Y * 0.003)
+			freecamRot = Vector2.new(freecamRot.X, math.clamp(freecamRot.Y, -1.57, 1.57))
+		end
+
+		local rotCFrame = CFrame.Angles(0, freecamRot.X, 0) * CFrame.Angles(freecamRot.Y, 0, 0)
+		freecamPos = freecamPos + (rotCFrame * moveVector) * (speed * dt)
+		cam.CFrame = CFrame.new(freecamPos) * rotCFrame
+	end)
 end)
 
 ThemeManager:SetLibrary(Library)
@@ -728,4 +1050,4 @@ SaveManager:BuildConfigSection(Tabs["UI Settings"])
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 SaveManager:LoadAutoloadConfig()
 
-print("[SPECTREWARE] Fully Loaded with Configurable Binds & Working Crosshair!")
+print("[SPECTREWARE] Fully Loaded, Optimized & Death-Resistant!")
